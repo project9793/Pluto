@@ -638,7 +638,7 @@
             Sign up
           </button>
         </div>
-        <p class="auth-note" style="margin-top:20px">Demo app · account aapke phone mein hi save hota hai</p>
+        <p class="auth-note" id="authModeNote" style="margin-top:20px">Local mode · account aapke phone mein hi save hota hai</p>
       </div>
 
       <div id="authLogin" style="display:none">
@@ -650,7 +650,7 @@
         </div>
         <div class="auth-form">
           <div class="auth-err" id="loginErr"></div>
-          <div class="field"><label>Phone number</label><input id="loginPhone" type="tel" inputmode="numeric" placeholder="+91 98765 43210"></div>
+          <div class="field"><label>Email</label><input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
           <div class="field"><label>Password</label><input id="loginPass" type="password" placeholder="Enter password"></div>
           <button class="btn btn-primary" id="doLoginBtn" style="margin-top:6px">Login</button>
           <p class="auth-note">Account nahi hai? <a id="toSignupFromLogin">Sign up</a></p>
@@ -667,7 +667,7 @@
         <div class="auth-form">
           <div class="auth-err" id="signupErr"></div>
           <div class="field"><label>Your name</label><input id="suName" type="text" placeholder="Full name"></div>
-          <div class="field"><label>Phone number</label><input id="suPhone" type="tel" inputmode="numeric" placeholder="+91 98765 43210"></div>
+          <div class="field"><label>Email</label><input id="suEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
           <div class="field"><label>Password</label><input id="suPass" type="password" placeholder="Create a password"></div>
           <button class="btn btn-primary" id="doSignupBtn" style="margin-top:6px">Create account</button>
           <p class="auth-note">Pehle se account hai? <a id="toLoginFromSignup">Login</a></p>
@@ -1188,6 +1188,7 @@ function renderMain(){
       ${settingRow('lock','Privacy','Blocked contacts, last seen','privacy')}
       ${settingRow('chat','Chat settings','Wallpaper, backup, storage','chats')}
       ${settingRow('shield','Security','End-to-end encryption','security')}
+      ${settingRow('cloud','Backend (Firebase)','Real accounts (signup / login)','backend')}
       <div class="setting-row" data-open-perms>
         <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M12 3a9 9 0 1 0 9 9"/></svg></div>
         <div class="tx"><div class="a">Permissions</div><div class="b">Location, camera, mic, files</div></div>
@@ -1229,7 +1230,8 @@ function settingRow(icon, title, sub, key){
     bell:'<path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
     lock:'<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
     chat:'<path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.7 9.7 0 0 1-3-.4L3 21l1.6-4.8A8.3 8.3 0 0 1 3 11.5 8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z"/>',
-    shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>'
+    shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>',
+    cloud:'<path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.6 1.5A3.5 3.5 0 0 0 6.5 19Z"/>'
   };
   return `<div class="setting-row"${key?` data-setting="${key}"`:''}>
     <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths[icon]}</svg></div>
@@ -1620,31 +1622,129 @@ function hideAuth(){ $('#authView').classList.add('hidden'); }
 function authErr(sel,msg){ const e=$(sel); e.textContent=msg; e.classList.add('show'); }
 function authClear(sel){ $(sel).classList.remove('show'); }
 
-function doSignup(){
+/* ---------- Firebase (real accounts / backend) ---------- */
+let fb = { enabled:false, app:null, auth:null, db:null, uid:null };
+const DEFAULT_FB_CONFIG = { apiKey:"AIzaSyA0VTjCKUbrVhX9Na89h-F_rB2Hug-s3kI", authDomain:"pluto-web-ced55.firebaseapp.com", projectId:"pluto-web-ced55", storageBucket:"pluto-web-ced55.firebasestorage.app", messagingSenderId:"669641621604", appId:"1:669641621604:web:188651c3542bc2335b5f71" };
+function getFbConfig(){
+  try{
+    if(localStorage.getItem('pluto_fb_disabled')==='1') return null;
+    return JSON.parse(localStorage.getItem('pluto_fb_config')||'null') || DEFAULT_FB_CONFIG;
+  }catch(e){ return DEFAULT_FB_CONFIG; }
+}
+function setFbConfig(cfg){
+  try{
+    if(cfg){ localStorage.setItem('pluto_fb_config', JSON.stringify(cfg)); localStorage.removeItem('pluto_fb_disabled'); }
+    else { localStorage.removeItem('pluto_fb_config'); localStorage.setItem('pluto_fb_disabled','1'); }
+  }catch(e){}
+}
+const FB_VER='10.12.2';
+function fbUrls(file){ return ['https://cdn.jsdelivr.net/npm/firebase@'+FB_VER+'/'+file, 'https://www.gstatic.com/firebasejs/'+FB_VER+'/'+file]; }
+function loadScriptChain(urls){
+  return new Promise((resolve,reject)=>{
+    let i=0;
+    const next=()=>{ if(i>=urls.length){ reject(new Error('load failed')); return; }
+      const s=document.createElement('script'); s.src=urls[i++]; s.onload=()=>resolve(); s.onerror=next; document.head.appendChild(s); };
+    next();
+  });
+}
+async function bootFirebase(){
+  const cfg = getFbConfig();
+  if(!cfg || !cfg.apiKey || !cfg.projectId) return false;
+  try{
+    await loadScriptChain(fbUrls('firebase-app-compat.js'));
+    await loadScriptChain(fbUrls('firebase-auth-compat.js'));
+    await loadScriptChain(fbUrls('firebase-firestore-compat.js'));
+  }catch(e){ return false; }
+  try{
+    fb.app = (window.firebase && firebase.apps && firebase.apps.length) ? firebase.app() : firebase.initializeApp(cfg);
+    fb.auth = firebase.auth(); fb.db = firebase.firestore();
+    fb.enabled = true; return true;
+  }catch(e){ return false; }
+}
+function fbErrMsg(e){
+  const m = {
+    'auth/invalid-email':'Email sahi nahi hai.',
+    'auth/email-already-in-use':'Yeh email pehle se registered hai — Login karein.',
+    'auth/weak-password':'Password kam se kam 6 characters ka ho.',
+    'auth/user-not-found':'Is email se koi account nahi mila.',
+    'auth/wrong-password':'Password galat hai.',
+    'auth/invalid-credential':'Email ya password galat hai.',
+    'auth/network-request-failed':'Internet problem — dobara try karein.',
+    'auth/too-many-requests':'Bahut attempts ho gaye — thodi der baad try karein.'
+  };
+  return m[(e&&e.code)||''] || ('Error: '+((e&&e.message)||'kuch galat hua'));
+}
+function setCloudPresence(on){
+  if(!fb.enabled || !fb.uid) return;
+  try{ fb.db.collection('users').doc(fb.uid).set({ online: !!on, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true}); }catch(e){}
+}
+async function afterCloudAuth(u, name, email){
+  fb.uid = u.uid;
+  let prof = { name: name || u.displayName || 'User', email: email || u.email || '', about:'Available' };
+  try{
+    const ref = fb.db.collection('users').doc(u.uid);
+    const doc = await ref.get();
+    if(doc.exists) prof = Object.assign(prof, doc.data());
+    else await ref.set(prof, {merge:true});
+  }catch(e){}
+  state.user = { name: prof.name, email: prof.email, phone:'', about: prof.about||'Available' };
+  state.profile = { name: prof.name, about: prof.about||'Available' };
+  save(); hideAuth(); setCloudPresence(true);
+  const note = $('#authModeNote'); if(note) note.textContent = 'Cloud mode · account Firebase par save hota hai';
+}
+async function cloudSignup(name, email, pass){
+  const cred = await fb.auth.createUserWithEmailAndPassword(email, pass);
+  try{ await cred.user.updateProfile({displayName:name}); }catch(e){}
+  try{ await fb.db.collection('users').doc(cred.user.uid).set({name, email, about:'Available', createdAt: firebase.firestore.FieldValue.serverTimestamp()}, {merge:true}); }catch(e){}
+  return cred.user;
+}
+async function doSignup(){
   authClear('#signupErr');
-  const name=$('#suName').value.trim(), phone=$('#suPhone').value.trim(), pass=$('#suPass').value;
+  const name=$('#suName').value.trim(), email=$('#suEmail').value.trim(), pass=$('#suPass').value;
   if(!name) return authErr('#signupErr','Apna naam daalein.');
-  if(!phone) return authErr('#signupErr','Phone number daalein.');
-  if(pass.length<4) return authErr('#signupErr','Password kam se kam 4 characters ka ho.');
-  try{ localStorage.setItem('pluto_account', JSON.stringify({name, phone, pass})); }catch(e){}
-  state.user={name, phone, about:'Available'};
+  if(!email) return authErr('#signupErr','Email daalein.');
+  if(pass.length<6) return authErr('#signupErr','Password kam se kam 6 characters ka ho.');
+  if(fb.enabled){
+    const b=$('#doSignupBtn'); if(b){ b.disabled=true; b.textContent='Creating…'; }
+    try{
+      const u = await cloudSignup(name, email, pass);
+      await afterCloudAuth(u, name, email);
+      toast('Welcome, '+name+'! Account ban gaya.');
+    }catch(e){ authErr('#signupErr', fbErrMsg(e)); }
+    finally{ if(b){ b.disabled=false; b.textContent='Create account'; } }
+    return;
+  }
+  try{ localStorage.setItem('pluto_account', JSON.stringify({name, email, pass})); }catch(e){}
+  state.user={name, email, about:'Available'};
   state.profile={name, about:'Available'};
   save(); hideAuth(); toast('Welcome, '+name+'! Account ban gaya.');
 }
-function doLogin(){
+async function doLogin(){
   authClear('#loginErr');
-  const phone=$('#loginPhone').value.trim(), pass=$('#loginPass').value;
-  if(!phone||!pass) return authErr('#loginErr','Phone aur password dono daalein.');
+  const email=$('#loginEmail').value.trim(), pass=$('#loginPass').value;
+  if(!email||!pass) return authErr('#loginErr','Email aur password dono daalein.');
+  if(fb.enabled){
+    const b=$('#doLoginBtn'); if(b){ b.disabled=true; b.textContent='Logging in…'; }
+    try{
+      const u = await fb.auth.signInWithEmailAndPassword(email, pass);
+      await afterCloudAuth(u);
+      toast('Welcome back!');
+    }catch(e){ authErr('#loginErr', fbErrMsg(e)); }
+    finally{ if(b){ b.disabled=false; b.textContent='Login'; } }
+    return;
+  }
   let acc=null;
   try{ acc=JSON.parse(localStorage.getItem('pluto_account')||'null'); }catch(e){}
   if(!acc) return authErr('#loginErr','Koi account nahi mila. Pehle Sign up karein.');
-  if(acc.phone!==phone) return authErr('#loginErr','Is number se koi account nahi mila.');
+  if(acc.email!==email) return authErr('#loginErr','Is email se koi account nahi mila.');
   if(acc.pass!==pass) return authErr('#loginErr','Password galat hai.');
-  state.user={name:acc.name, phone:acc.phone, about:'Available'};
+  state.user={name:acc.name, email:acc.email, about:'Available'};
   state.profile={name:acc.name, about:'Available'};
   save(); hideAuth(); toast('Welcome back, '+acc.name+'!');
 }
-function doLogout(){
+async function doLogout(){
+  setCloudPresence(false);
+  if(fb.enabled){ try{ await fb.auth.signOut(); }catch(e){} fb.uid=null; }
   state.user=null; save();
   closeChat();
   $('#newChatSheet').style.display='none';
@@ -2269,6 +2369,16 @@ function renderSettingsSection(name){
       <button class="btn btn-primary" id="savePass">Change password</button>
       <button class="btn btn-danger" id="wipeBtn">Erase all app data</button>
     </div>`;
+  } else if(name==='backend'){
+    const cfg = getFbConfig();
+    html = `<div class="set-form">
+      <div class="note-card">${fb.enabled?'✓ Firebase connected — real accounts (signup / login) chalu hain.':'Real accounts (signup / login) ke liye Firebase config paste karein.'}</div>
+      <div class="set-note" style="padding:0">Firebase Console → Project settings → Your apps → Web app → SDK setup & configuration → Config. Wahan se config copy karke niche paste karein.</div>
+      <div class="field"><label>Firebase config (JSON)</label><textarea id="fbCfg" rows="8" style="width:100%;border:1px solid var(--border);background:var(--surface-2);border-radius:12px;padding:12px;font:inherit;font-size:12.5px;color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,monospace" placeholder='{&quot;apiKey&quot;:&quot;...&quot;,&quot;authDomain&quot;:&quot;...&quot;,&quot;projectId&quot;:&quot;...&quot;,&quot;storageBucket&quot;:&quot;...&quot;,&quot;messagingSenderId&quot;:&quot;...&quot;,&quot;appId&quot;:&quot;...&quot;}'></textarea></div>
+      <button class="btn btn-primary" id="fbSave">Save &amp; reload</button>
+      ${cfg?`<button class="btn btn-danger" id="fbRemove">Remove (local mode)</button>`:''}
+      <div class="set-note" style="padding:0">Status: <b>${fb.enabled?'Connected ✓':'Local mode (Firebase off)'}</b></div>
+    </div>`;
   }
   body.innerHTML = html;
   bindSettingsSection(name);
@@ -2297,6 +2407,19 @@ function bindSettingsSection(name){
   if(name==='security'){
     const sp=q('#savePass'); if(sp) sp.onclick=()=>{ const p=q('#secPass').value; if(p.length<4){ toast('Password kam se kam 4 characters'); return; } try{ const acc=JSON.parse(localStorage.getItem('pluto_account')||'null'); if(acc){ acc.pass=p; localStorage.setItem('pluto_account', JSON.stringify(acc)); toast('Password badal gaya'); } else toast('Pehle account banayein'); }catch(e){ toast('Password save nahi hua'); } };
     const wb=q('#wipeBtn'); if(wb) wb.onclick=()=>{ if(confirm('Poora app data erase karna hai? Yeh undo nahi hoga.')){ try{ localStorage.removeItem('pluto_state'); localStorage.removeItem('pluto_account'); }catch(e){} location.reload(); } };
+  }
+  if(name==='backend'){
+    const cfgEl=q('#fbCfg'); const cur=getFbConfig(); if(cfgEl && cur) cfgEl.value = JSON.stringify(cur, null, 2);
+    const sv=q('#fbSave'); if(sv) sv.onclick=()=>{
+      const raw=(q('#fbCfg').value||'').trim();
+      if(!raw){ toast('Config paste karein'); return; }
+      let obj;
+      try{ obj = JSON.parse(raw.replace(/^\s*(const|var|let)\s+\w+\s*=\s*/,'').replace(/;\s*$/,'')); }
+      catch(e){ toast('JSON sahi nahi hai — config dobara copy karein'); return; }
+      if(!obj.apiKey || !obj.projectId){ toast('apiKey aur projectId zaroori hain'); return; }
+      setFbConfig(obj); toast('Save ho gaya — reload ho raha hai…'); setTimeout(()=>location.reload(), 600);
+    };
+    const rm=q('#fbRemove'); if(rm) rm.onclick=()=>{ if(confirm('Firebase config hatayein? App local mode mein chala jaayega.')){ setFbConfig(null); location.reload(); } };
   }
 }
 function exportBackup(){
@@ -2751,7 +2874,22 @@ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.data
 ensurePresence();
 renderMain();
 applySettings();
-if(state.user){ hideAuth(); } else { showAuth(); }
+(function boot(){
+  bootFirebase().then((ok)=>{
+    const note = $('#authModeNote');
+    if(ok && fb.auth){
+      if(note) note.textContent = 'Cloud mode · account Firebase par save hota hai';
+      state.user = null; save(); showAuth();
+      fb.auth.onAuthStateChanged(async (u)=>{
+        if(u){ await afterCloudAuth(u); }
+        else { if(state.user){ state.user=null; save(); } showAuth(); }
+      });
+    } else {
+      if(note) note.textContent = 'Local mode · account aapke phone mein hi save hota hai';
+      if(state.user){ hideAuth(); } else { showAuth(); }
+    }
+  }).catch(()=>{ if(state.user){ hideAuth(); } else { showAuth(); } });
+})();
 
 /* ---------- PWA manifest (inline, for Add to Home Screen) ---------- */
 try{
