@@ -1382,36 +1382,64 @@ svg.leaflet-image-layer.leaflet-interactive path {
   ::-webkit-scrollbar{width:5px;height:5px}
   ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 
+
+
+  .meta .mreact:hover{opacity:1;transform:scale(1.25)}
+
+
   /* ---------- Splash screen ---------- */
   #splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;background:var(--header-grad);color:#fff;
-    transition:opacity .6s ease,visibility .6s ease;text-align:center}
+    align-items:center;justify-content:center;color:#fff;overflow:hidden;text-align:center;
+    background:
+      radial-gradient(1100px 620px at 50% -8%, rgba(22,194,176,.55), transparent 62%),
+      linear-gradient(160deg,#0a6b64 0%, #0d7d74 52%, #16c2b0 100%);
+    transition:opacity .6s ease,visibility .6s ease}
   #splash.hide{opacity:0;visibility:hidden;pointer-events:none}
-  #splash .sp-logo{width:118px;height:118px;border-radius:28px;overflow:hidden;
-    box-shadow:0 18px 40px rgba(0,0,0,.34);
-    animation:spPop .7s cubic-bezier(.2,.8,.25,1) both, spFloat 2.6s ease-in-out .7s infinite}
+  #splash .sp-stars{position:absolute;inset:0;opacity:.9;animation:spTwinkle 4s ease-in-out infinite;
+    background-image:
+      radial-gradient(1.7px 1.7px at 18% 28%, rgba(255,255,255,.75), transparent),
+      radial-gradient(1.4px 1.4px at 72% 20%, rgba(255,255,255,.6), transparent),
+      radial-gradient(1.6px 1.6px at 84% 66%, rgba(255,255,255,.5), transparent),
+      radial-gradient(1.3px 1.3px at 30% 80%, rgba(255,255,255,.45), transparent),
+      radial-gradient(1.3px 1.3px at 58% 88%, rgba(255,255,255,.4), transparent)}
+  #splash .sp-wrap{position:relative;width:186px;height:186px;display:grid;place-items:center}
+  #splash .sp-orbit{position:absolute;inset:0;border-radius:50%;
+    border:2px dashed rgba(255,255,255,.34);animation:spSpin 9s linear infinite}
+  #splash .sp-orbit::before{content:'';position:absolute;top:-5px;left:50%;width:10px;height:10px;
+    margin-left:-5px;border-radius:50%;background:#fff;box-shadow:0 0 14px rgba(255,255,255,.95)}
+  #splash .sp-logo{width:126px;height:126px;border-radius:31px;overflow:hidden;
+    box-shadow:0 22px 48px rgba(0,0,0,.40), 0 0 0 1px rgba(255,255,255,.18);
+    animation:spPop .7s cubic-bezier(.2,.8,.25,1) both, spFloat 2.8s ease-in-out .7s infinite}
   #splash .sp-logo svg{width:100%;height:100%;display:block}
-  #splash .sp-name{font-size:31px;font-weight:700;letter-spacing:.5px;margin-top:22px;
-    animation:spIn .6s ease .15s both}
-  #splash .sp-tag{font-size:13px;opacity:.86;margin-top:6px;letter-spacing:.2px;
-    animation:spIn .6s ease .3s both}
-  #splash .sp-load{display:flex;gap:6px;margin-top:36px}
-  #splash .sp-load i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.9);
-    animation:spBlink 1.2s infinite}
-  #splash .sp-load i:nth-child(2){animation-delay:.2s}
-  #splash .sp-load i:nth-child(3){animation-delay:.4s}
+  #splash .sp-name{font-size:35px;font-weight:800;letter-spacing:.4px;margin-top:26px;
+    animation:spIn .6s ease .18s both}
+  #splash .sp-tag{font-size:13.5px;opacity:.88;margin-top:7px;letter-spacing:.3px;
+    animation:spIn .6s ease .32s both}
+  #splash .sp-bar{width:176px;height:5px;border-radius:99px;background:rgba(255,255,255,.22);
+    margin-top:38px;overflow:hidden;animation:spIn .6s ease .45s both}
+  #splash .sp-bar span{display:block;width:44%;height:100%;border-radius:99px;background:#fff;
+    animation:spSlide 1.25s ease-in-out infinite}
+  #splash .sp-hint{margin-top:14px;font-size:11.5px;letter-spacing:2.8px;text-transform:uppercase;
+    opacity:.72;animation:spIn .6s ease .55s both}
   @keyframes spPop{from{opacity:0;transform:scale(.72)}to{opacity:1;transform:scale(1)}}
   @keyframes spIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-  @keyframes spFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-  @keyframes spBlink{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+  @keyframes spFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  @keyframes spSpin{to{transform:rotate(360deg)}}
+  @keyframes spSlide{0%{transform:translateX(-125%)}100%{transform:translateX(330%)}}
+  @keyframes spTwinkle{0%,100%{opacity:.5}50%{opacity:1}}
 </style>
 </head>
 <body>
 <div id="splash">
-  <div class="sp-logo"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pluto"><defs><linearGradient id="plg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0d7d74"/><stop offset="1" stop-color="#13b3a3"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#plg)"/><circle cx="32" cy="33" r="11.5" fill="#ffffff"/><ellipse cx="32" cy="33" rx="21" ry="7.5" fill="none" stroke="#ffffff" stroke-width="3" transform="rotate(-24 32 33)" opacity="0.92"/><circle cx="50" cy="20" r="3" fill="#ffffff" opacity="0.85"/></svg></div>
+  <div class="sp-stars"></div>
+  <div class="sp-wrap">
+    <div class="sp-orbit"></div>
+    <div class="sp-logo"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pluto"><defs><linearGradient id="plg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b6f68"/><stop offset=".55" stop-color="#0d7d74"/><stop offset="1" stop-color="#16c2b0"/></linearGradient><radialGradient id="plglow" cx=".3" cy=".2" r=".85"><stop offset="0" stop-color="#fff" stop-opacity=".30"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></radialGradient><radialGradient id="plpl" cx=".36" cy=".3" r=".95"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#d6f2ee"/></radialGradient></defs><rect width="64" height="64" rx="15" fill="url(#plg)"/><rect width="64" height="64" rx="15" fill="url(#plglow)"/><circle cx="49" cy="15" r="1.5" fill="#fff" opacity=".9"/><circle cx="15" cy="18" r="1.1" fill="#fff" opacity=".6"/><g transform="rotate(-22 32 34)"><path d="M7.5,34 A26,9 0 0,0 56.5,34" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".95"/></g><circle cx="32" cy="34" r="13" fill="url(#plpl)"/><circle cx="27.5" cy="29.5" r="2.2" fill="#cfeee9" opacity=".8"/><g transform="rotate(-22 32 34)"><path d="M7.5,34 A26,9 0 0,1 56.5,34" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".95"/></g></svg></div>
+  </div>
   <div class="sp-name">Pluto</div>
-  <div class="sp-tag">Simple, private messaging</div>
-  <div class="sp-load"><i></i><i></i><i></i></div>
+  <div class="sp-tag">Secure &amp; private messaging</div>
+  <div class="sp-bar"><span></span></div>
+  <div class="sp-hint">Loading</div>
 </div>
 <div class="stage">
   <div class="phone" id="phone">
@@ -1881,7 +1909,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 /* ============================================================
    Pluto — Messenger (single-file web app)
    Cloud mode (Firebase: accounts, chats, E2EE) + local mode.
-   Real 1:1 audio/video calls over WebRTC.  build v75
+   Real 1:1 audio/video calls over WebRTC.  build v76
    ============================================================ */
 const COLORS = ['#0d7d74','#e07a5f','#3d6bb3','#8e5bb5','#c0504d','#2a9d8f','#b5651d','#4a6fa5','#a14e7a','#437c90'];
 const AV = n => { let h=0; for(const c of n) h=(h*31+c.charCodeAt(0))>>>0; return COLORS[h%COLORS.length]; };
@@ -2250,7 +2278,7 @@ function meetHTML(m, other){
 function trendHTML(m){
   let s;
   if(m.trend==='approach') s = `<span class="tr up">↓ Getting closer</span>${m.eta?`<span class="eta">ETA ~${etaText(m.eta)}</span>`:''}`;
-  else if(m.trend==='away') s = `<span class="tr down">↑ Moving away</span><span class="tr turn">⚠️ Doori badh rahi hai — koi galat raste par ho sakta hai</span>`;
+  else if(m.trend==='away') s = `<span class="tr down">↑ Moving away</span><span class="tr turn">⚠️ Distance is increasing — someone may be on the wrong route</span>`;
   else s = `<span class="tr flat">• Same place</span>`;
   if(m.routeAt && (now()-m.routeAt<30000)) s += `<span class="tr turn">🧭 Rasta badla</span>`;
   return s;
@@ -2522,7 +2550,7 @@ function authClear(sel){ $(sel).classList.remove('show'); }
 let fb = { enabled:false, app:null, auth:null, db:null, storage:null, uid:null };
 const DEFAULT_FB_CONFIG = { apiKey:"AIzaSyA0VTjCKUbrVhX9Na89h-F_rB2Hug-s3kI", authDomain:"pluto-web-ced55.firebaseapp.com", projectId:"pluto-web-ced55", storageBucket:"pluto-web-ced55.firebasestorage.app", messagingSenderId:"669641621604", appId:"1:669641621604:web:188651c3542bc2335b5f71" };
 const DEFAULT_CLOUDINARY = { cloud:"ex9vuxxu", preset:"plutoweb" };
-const APP_VERSION = 'v75';   // shown in Settings above Logout
+const APP_VERSION = 'v76';   // shown in Settings above Logout
 function getFbConfig(){
   try{
     if(localStorage.getItem('pluto_fb_disabled')==='1') return null;
@@ -2809,10 +2837,10 @@ function updateMeetMetrics(m){
   try{
     const c = state.chats.find(x=>x.id===activeChatId);
     const nm = (c && c.name) || 'Contact';
-    if(d < 30) speakAlert('Aap '+nm+' ke paas pahunch gaye. Bilkul paas hi hain.');
+    if(d < 30) speakAlert('You have reached '+nm+'. You are both very close.');
     else if(m.eta!=null && m.eta>0 && m.eta<=120) speakAlert('Bas '+Math.max(1,Math.round(m.eta/60))+' minute me '+nm+' se mil jayenge.');
-    else if(m.trend==='away') speakAlert('Savdhan! Doori badh rahi hai. Koi galat raste par ja raha hai.');
-    else if(m.trend==='approach') speakAlert(nm+' paas aa raha hai.');
+    else if(m.trend==='away') speakAlert('Warning! The distance is increasing. Someone may be on the wrong route.');
+    else if(m.trend==='approach') speakAlert(nm+' is getting closer.');
   }catch(e){}
 }
 function syncLiveMsg(c){
@@ -4309,7 +4337,7 @@ function openStorySheet(){
   const c=$('#stCam'), g=$('#stGal'), t=$('#stTxt');
   if(c) c.onclick=()=>{ $('#storySheet').style.display='none'; cameraTarget='story'; openCamera(); };
   if(g) g.onclick=()=>$('#storyPhoto').click();
-  if(t) t.onclick=()=>{ const x=prompt('Story text likhein:'); if(x && x.trim()){ addStoryItem({kind:'text', text:x.trim(), bg:STORY_BGS[Math.floor(Math.random()*STORY_BGS.length)]}); $('#storySheet').style.display='none'; } };
+  if(t) t.onclick=()=>{ const x=prompt('Story text:'); if(x && x.trim()){ addStoryItem({kind:'text', text:x.trim(), bg:STORY_BGS[Math.floor(Math.random()*STORY_BGS.length)]}); $('#storySheet').style.display='none'; } };
   $('#storySheet').style.display='flex';
 }
 function myStory(){
