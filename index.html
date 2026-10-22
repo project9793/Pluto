@@ -931,7 +931,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .back-btn svg{width:24px;height:24px}
 
   .messages{
-    flex:1;overflow-y:auto;padding:14px 12px 8px;display:flex;flex-direction:column;gap:4px;
+    flex:1;overflow-y:auto;padding:14px 12px 12px;display:flex;flex-direction:column;gap:4px;
     background-image:
       radial-gradient(circle at 20% 20%, rgba(13,125,116,0.05), transparent 40%),
       radial-gradient(circle at 85% 70%, rgba(15,156,142,0.05), transparent 45%);
@@ -2202,6 +2202,12 @@ function renderMessages(_forceBottom){
   });
   renderMiniMaps();
   messagesEl.scrollTop = _stick ? messagesEl.scrollHeight : _prevTop;
+  if(_stick){
+    // the content height can still change after this paint (mini-maps, images, fonts),
+    // which would push the last message down behind the input bar — re-snap a few times
+    const _toBottom = ()=>{ try{ messagesEl.scrollTop = messagesEl.scrollHeight; }catch(e){} };
+    setTimeout(_toBottom, 60); setTimeout(_toBottom, 220); setTimeout(_toBottom, 520);
+  }
 }
 function haversine(a,b){
   const R=6371000, t=x=>x*Math.PI/180;
@@ -2549,7 +2555,7 @@ function authClear(sel){ $(sel).classList.remove('show'); }
 let fb = { enabled:false, app:null, auth:null, db:null, storage:null, uid:null };
 const DEFAULT_FB_CONFIG = { apiKey:"AIzaSyA0VTjCKUbrVhX9Na89h-F_rB2Hug-s3kI", authDomain:"pluto-web-ced55.firebaseapp.com", projectId:"pluto-web-ced55", storageBucket:"pluto-web-ced55.firebasestorage.app", messagingSenderId:"669641621604", appId:"1:669641621604:web:188651c3542bc2335b5f71" };
 const DEFAULT_CLOUDINARY = { cloud:"ex9vuxxu", preset:"plutoweb" };
-const APP_VERSION = 'v81';   // shown in Settings above Logout
+const APP_VERSION = 'v82';   // shown in Settings above Logout
 function getFbConfig(){
   try{
     if(localStorage.getItem('pluto_fb_disabled')==='1') return null;
